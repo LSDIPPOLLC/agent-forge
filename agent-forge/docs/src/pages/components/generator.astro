@@ -1,0 +1,55 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Generator">
+  <h1>Generator</h1>
+
+  <p>Transforms a natural language description into a complete, self-contained TypeScript agent file.</p>
+
+  <h2>Interface</h2>
+  <pre><code>import {'{'} Generator {'}'} from "agent-forge/generator";
+import {'{'} createOllamaBackend {'}'} from "agent-forge/llm_backend/ollama";
+
+const llm = createOllamaBackend();
+const generator = new Generator(llm);
+
+const schema = await generator.make({'{'}
+  description: "review PRs for logic errors and style violations",
+  name: "pr_reviewer",
+  tools: ["gh_api", "read_file"],
+{'}'});
+
+const code = generator.serialize(schema);</code></pre>
+
+  <h2>Generation Prompt</h2>
+  <p>The Generator uses a structured system prompt instructing the LLM to produce:</p>
+  <ul>
+    <li>Complete header comment block <code>// agent:</code>, <code>// description:</code>, etc.</li>
+    <li>SKILL.md docstring with Role, Tools, and Behavior sections</li>
+    <li><code>INPUT_SCHEMA</code> and <code>OUTPUT_SCHEMA</code> constants</li>
+    <li><code>handle(input: unknown): Promise</code> function with actual logic</li>
+  </ul>
+
+  <h2>Output</h2>
+  <p><code>generator.make()</code> returns an <code>AgentSchema</code> object:</p>
+  <pre><code>interface AgentSchema {'{'}
+  name: string;
+  description: string;
+  version: number;
+  tools: string[];
+  inputSchema: Record&lt;string, string&gt;;
+  outputSchema: Record&lt;string, string&gt;;
+  skillMd: string;
+  systemPrompt: string;
+  handlerCode: string;
+{'}'}</code></pre>
+
+  <p><code>generator.serialize(schema)</code> returns a string of the complete TypeScript agent file, including header comments and SKILL.md docstring.</p>
+
+  <h2>Code Extraction</h2>
+  <p>The Generator parses its own output to extract the schema fields. It uses regex to pull the header values, docstring content, and handler code from the LLM response. If the LLM output doesn't match the expected format, a fallback minimal agent is returned.</p>
+
+  <h2>Customization</h2>
+  <p>To customize generation behavior, modify the system prompt in <code>src/generator.ts</code>.</p>
+</Layout>

@@ -1,0 +1,166 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Overview">
+  <div class="hero">
+    <h1>Agent Forge</h1>
+    <p class="tagline">A meta-framework for creating and auto-refining LLM-driven agents</p>
+  </div>
+
+  <div class="cta-buttons">
+    <a href="/agent-forge/quickstart" class="btn btn-primary">Get Started</a>
+    <a href="/agent-forge/concepts/architecture" class="btn btn-secondary">How It Works</a>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature">
+      <h3>LLM-Driven Generation</h3>
+      <p>Describe your agent in natural language. Agent Forge generates a complete, self-contained TypeScript agent ready to run.</p>
+    </div>
+    <div class="feature">
+      <h3>Automated Evaluation</h3>
+      <p>Every iteration is tested against LLM-generated test cases with an LLM judge scoring semantic quality — no manual test writing.</p>
+    </div>
+    <div class="feature">
+      <h3>Self-Refining Loop</h3>
+      <p>Failed evaluations feed back into an LLM refiner that rewrites only the broken parts — targeted fixes, not full rewrites.</p>
+    </div>
+    <div class="feature">
+      <h3>Overfitting Safeguards</h3>
+      <p>Diversity-enforced test generation, intent tracing, and generalization holdouts ensure agents serve real use cases, not just test suites.</p>
+    </div>
+    <div class="feature">
+      <h3>Multi-Agent Execution</h3>
+      <p>Agents can call sub-agents with depth-limited nested execution and cycle detection for compositional workflows.</p>
+    </div>
+    <div class="feature">
+      <h3>Pluggable Output</h3>
+      <p>Export finished agents to Claude Skills format (<code>~/.claude/skills/</code>) or as standalone packages.</p>
+    </div>
+  </div>
+
+  <div class="code-preview">
+    <h2>One Command</h2>
+    <pre><code>agent-forge create "review PRs for logic errors" \
+  --tools gh_api,read_file \
+  --output claude-skills</code></pre>
+    <p>Agent Forge generates the agent, runs the eval loop, refines until quality threshold is met, and exports to your target.</p>
+  </div>
+
+  <div class="architecture-diagram">
+    <h2>Architecture</h2>
+    <pre><code>NL Description
+     ↓
+┌─────────────────────────────────────────┐
+│           LoopController                 │
+│  IDLE → GENERATING → EVALUATING →      │
+│  REFINING → (loop or DONE)              │
+└─────────────────────────────────────────┘
+     ↓              ↓              ↓
+  Generator    Evaluator     Refiner
+     ↓              ↓              ↓
+  agent.ts     ScoreReport   agent_v2.ts</code></pre>
+  </div>
+</Layout>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 3rem 0 2rem;
+  }
+
+  .hero h1 {
+    font-size: 2.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+  }
+
+  .tagline {
+    font-size: 1.125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin: 2rem 0 3rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--color-accent-secondary);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0 3rem;
+  }
+
+  .feature {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+
+  .feature h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.5rem;
+    color: var(--color-accent);
+  }
+
+  .feature p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  .code-preview, .architecture-diagram {
+    margin: 2.5rem 0;
+  }
+
+  .code-preview pre, .architecture-diagram pre {
+    margin: 0.75rem 0 1rem;
+  }
+
+  .code-preview p, .architecture-diagram p {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+</style>

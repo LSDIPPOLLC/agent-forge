@@ -1,0 +1,92 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Evaluator">
+  <h1>Evaluator</h1>
+
+  <p>Runs an agent against test cases and scores quality using both schema validation and LLM judgment.</p>
+
+  <h2>Interface</h2>
+  <pre><code>import &lcub; Evaluator &rcub; from "agent-forge/evaluator";
+import &lcub; createOllamaBackend &rcub; from "agent-forge/llm_backend/ollama";
+
+const llm = createOllamaBackend();
+const evaluator = new Evaluator(llm);
+
+const report = await evaluator.run(&lcub;
+  agentCode: agentCodeString,
+  testCases: [
+    &lcub;
+      id: "tc-1",
+      input: &lcub; pr_url: "https://github.com/org/repo/pull/1", repo: "org/repo" &rcub;,
+      expectedSchema: &lcub; keys: ["issues", "score", "summary"] &rcub;,
+      tracedTo: ["logic errors"],
+      diversityScore: 1,
+    &rcub;,
+  ],
+  description: "review PRs for logic errors",
+  outputSchema: &lcub; issues: "array", score: "number", summary: "string" &rcub;,
+&rcub;);
+
+// report.testPassRate: 0.0 - 1.0
+// report.judgeScore: 0.0 - 1.0
+// report.composite: 0.6 * testPassRate + 0.4 * judgeScore
+// report.passed: boolean</code></pre>
+
+  <h2>ScoreReport Fields</h2>
+  <pre><code>interface ScoreReport &lcub;
+  testPassRate: number;
+  judgeScore: number;
+  composite: number;
+  generalizationScore?: number;
+  generalizationWarning?: string;
+  coverageGaps: string[];
+  testResults: TestResult[];
+  passed: boolean;
+&rcub;
+
+interface TestResult &lcub;
+  testCase: TestCase;
+  passed: boolean;
+  output?: unknown;
+  error?: string;
+  executionTimeMs: number;
+&rcub;</code></pre>
+
+  <h2>Execution</h2>
+  <p>Each test case is executed via <code>bun:eval</code> in an isolated subprocess:</p>
+  <pre><code>// Temporary files created per test
+const agentFile = "`/tmp/agent-forge-evals/agent_` + runId + `.ts`";
+const runtimeFile = "`/tmp/agent-forge-evals/runtime_` + runId + `.ts`";
+const inputFile = "`/tmp/agent-forge-evals/input_` + runId + `.json`";
+
+// Files cleaned up after execution
+bun run agent_" + runId + ".ts</code></pre>
+
+  <h2>LLM Judge</h2>
+  <p>The judge evaluates up to 3 test outputs (sampled) for semantic quality:</p>
+  <pre><code>// Judge prompt instructs LLM to score 0-25 per criterion:
+// - Correctness
+// - Completeness
+// - Quality
+// - Format Compliance
+
+// judgeScore = average(criterion_scores) / 25</code></pre>
+
+  <h2>Generalization Shadow Eval</h2>
+  <p>After main tests, 3 shadow cases run to check generalization. These are synthetic inputs that are:</p>
+  <ul>
+    <li>Within the intended scope</li>
+    <li>Not similar to training inputs</li>
+  </ul>
+  <p>A warning is attached if the agent fails 2/3 or more shadow cases.</p>
+
+  <h2>Customization</h2>
+  <p>Key constants in <code>src/evaluator.ts</code>:</p>
+  <ul>
+    <li><code>AGENT_RUNTIME_PACKAGE</code> — the runtime shim injected for all agent executions</li>
+    <li><code>MAX_SHADOW_CASES</code> — number of generalization holdout tests (default: 3)</li>
+    <li><code>EXEC_TIMEOUT_MS</code> — per-test execution timeout (default: 30000ms)</li>
+  </ul>
+</Layout>

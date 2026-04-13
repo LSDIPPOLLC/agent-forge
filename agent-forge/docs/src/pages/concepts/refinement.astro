@@ -1,0 +1,73 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Refinement Loop">
+  <h1>Refinement Loop</h1>
+
+  <p>When an agent fails the QualityGate, the Refiner rewrites it using the failure report as a targeted fix guide.</p>
+
+  <h2>Loop Flow</h2>
+  <pre><code>describe("review PRs for logic errors")
+    |
+ Generator - agent_v1.ts
+    |
+ Evaluator - ScoreReport
+    |  composite: 0.62, failures: [...]
+    |
+ QualityGate: FAIL (0.62 less than 0.85)
+    |
+ Refiner - agent_v2.ts (targeted fixes)
+    |
+ Evaluator - ScoreReport
+    |  composite: 0.88
+    |
+ QualityGate: PASS - OutputAdapter - export</code></pre>
+
+  <h2>Refiner Strategy</h2>
+  <p>The Refiner is not told to "rewrite everything." It receives:</p>
+  <ul>
+    <li>Current agent code</li>
+    <li>Full failure report (test results, judge scores, specific failures)</li>
+    <li>System prompt instructing targeted, conservative changes</li>
+  </ul>
+
+  <h3>Common Fix Patterns</h3>
+  <table>
+    <thead>
+      <tr><th>Failure</th><th>Fix</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Missing output fields</td><td>Check OUTPUT_SCHEMA, ensure all keys returned</td></tr>
+      <tr><td>Schema mismatch</td><td>Align returned keys with expected schema exactly</td></tr>
+      <tr><td>Error handling</td><td>Wrap operations in try/catch, return error info gracefully</td></tr>
+      <tr><td>Tool misuse</td><td>Verify tool import and correct call signature</td></tr>
+      <tr><td>Edge case crash</td><td>Add null/undefined checks</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Iteration Tracking</h2>
+  <p>Every iteration is snapshot in the Registry:</p>
+  <ul>
+    <li>Agent code at that version</li>
+    <li>Eval run results (score, failures, warnings)</li>
+    <li>Best score tracked across all versions</li>
+  </ul>
+  <p>If the loop exits without passing, the best-scoring version is retained.</p>
+
+  <h2>Max Iterations</h2>
+  <p>Default: 5. Configurable via <code>--max-iterations</code>. After max:</p>
+  <ul>
+    <li>Loop exits with <code>FAILED</code> state</li>
+    <li>Best version is saved in registry</li>
+    <li>Best code is available for inspection</li>
+    <li>Export is NOT triggered (requires passing gate)</li>
+  </ul>
+
+  <h2>Output on Export</h2>
+  <p>When the agent passes, it's written to the target via an OutputAdapter:</p>
+  <ul>
+    <li><strong>Claude Skills</strong>: <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code> + <code>agent.ts</code></li>
+    <li><strong>Standalone</strong>: <code>./agents/&lt;name&gt;/agent.ts</code> + <code>README.md</code></li>
+  </ul>
+</Layout>

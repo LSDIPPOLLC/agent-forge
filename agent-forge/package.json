@@ -1,0 +1,24 @@
+{
+  "name": "agent-forge",
+  "version": "0.1.0",
+  "description": "Meta-framework for creating and auto-refining LLM-driven agents",
+  "type": "module",
+  "bin": {
+    "agent-forge": "./src/cli.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "dev": "bun run src/cli.ts"
+  },
+  "dependencies": {
+    "bun": "^1.1.0",
+    "zod": "^3.23.8",
+    "@clack/prompts": "^0.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
