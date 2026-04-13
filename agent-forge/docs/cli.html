@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>CLI Reference — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>CLI Reference</h1>
+
+          <h2>Commands</h2>
+
+          <h3>create</h3>
+          <p>Create and refine a new agent from a natural language description.</p>
+          <pre><code>agent-forge create "description" [options]
+
+Options:
+  --tools &lt;list&gt;       Comma-separated tools (default: read_file, run_command)
+  --output &lt;target&gt;     Output target: claude-skills or standalone (default: claude-skills)
+  --threshold &lt;0-1&gt;   Pass threshold (default: 0.85)
+  --max-iterations &lt;N&gt; Max refinement iterations (default: 5)</code></pre>
+          <p>Example:</p>
+          <pre><code>agent-forge create "review PRs for logic errors" \
+  --tools gh_api,read_file \
+  --output claude-skills \
+  --threshold 0.85 \
+  --max-iterations 5</code></pre>
+
+          <h3>list</h3>
+          <p>List all agents in the registry with their latest status.</p>
+          <pre><code>agent-forge list</code></pre>
+          <pre><code> Agents (3):
+
+  [PASS] pr_reviewer (v4) — Reviews PRs for logic errors
+  [FAIL] code_summarizer (v5) — Summarizes code files
+  [NEW]  test_generator (v0) — Generates test cases</code></pre>
+
+          <h3>history</h3>
+          <p>Show version history and scores for a specific agent.</p>
+          <pre><code>agent-forge history &lt;name&gt;</code></pre>
+          <pre><code> pr_reviewer — 4 version(s):
+
+  v1: score=0.42 pass=no
+  v2: score=0.58 pass=no
+  v3: score=0.71 pass=no
+  v4: score=0.89 pass=yes</code></pre>
+
+          <h3>inspect</h3>
+          <p>Inspect the code of a specific agent version.</p>
+          <pre><code>agent-forge inspect &lt;name&gt; [--v N]</code></pre>
+          <pre><code># Latest version
+agent-forge inspect pr_reviewer
+
+# Specific version
+agent-forge inspect pr_reviewer --v 3</code></pre>
+
+          <h3>eval</h3>
+          <p>Re-run evaluation against the latest version of an agent.</p>
+          <pre><code>agent-forge eval &lt;name&gt;</code></pre>
+
+          <h3>refine</h3>
+          <p>Force a refinement loop starting from the current version.</p>
+          <pre><code>agent-forge refine &lt;name&gt;</code></pre>
+
+          <h3>export</h3>
+          <p>Export the latest passed version to a directory.</p>
+          <pre><code>agent-forge export &lt;name&gt; --output ./my-agents/</code></pre>
+
+          <h2>Environment Variables</h2>
+          <table>
+            <thead>
+              <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>OLLAMA_BASE_URL</code></td><td>http://localhost:11434</td><td>Ollama server URL</td></tr>
+              <tr><td><code>OLLAMA_MODEL</code></td><td>llama3.2</td><td>Ollama model name</td></tr>
+              <tr><td><code>OPENAI_API_KEY</code></td><td>—</td><td>OpenAI API key</td></tr>
+              <tr><td><code>ANTHROPIC_API_KEY</code></td><td>—</td><td>Anthropic API key</td></tr>
+              <tr><td><code>OPENAI_MODEL</code></td><td>gpt-4o</td><td>Model for OpenAI adapter</td></tr>
+              <tr><td><code>OPENAI_BASE_URL</code></td><td>https://api.openai.com/v1</td><td>API base URL</td></tr>
+              <tr><td><code>AGENT_FORGE_DATA</code></td><td>.agent-forge</td><td>Data directory</td></tr>
+              <tr><td><code>AGENT_MAX_DEPTH</code></td><td>3</td><td>Max nested agent call depth</td></tr>
+              <tr><td><code>AGENT_TIMEOUT_MS</code></td><td>30000</td><td>Per-test execution timeout</td></tr>
+            </tbody>
+          </table>
+
+          <h2>Exit Codes</h2>
+          <table>
+            <thead>
+              <tr><th>Code</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>0</td><td>Success</td></tr>
+              <tr><td>1</td><td>Error (LLM unavailable, invalid args, etc.)</td></tr>
+              <tr><td>2</td><td>Agent failed to pass quality gate after max iterations</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

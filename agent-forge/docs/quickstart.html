@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>Quick Start — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>Quick Start</h1>
+
+          <p>Create your first agent in under 5 minutes.</p>
+
+          <h2>1. Create an Agent</h2>
+          <pre><code>agent-forge create "review PRs for logic errors and style violations"</code></pre>
+          <p>The CLI will prompt for:</p>
+          <ul>
+            <li><strong>Output target</strong> — Claude Skills or Standalone</li>
+            <li><strong>Tools</strong> — comma-separated list (default: read_file, run_command)</li>
+            <li><strong>Pass threshold</strong> — 0.0 to 1.0 (default: 0.85)</li>
+            <li><strong>Max iterations</strong> — refinement loop limit (default: 5)</li>
+          </ul>
+
+          <h2>2. Watch the Loop Run</h2>
+          <pre><code>[1/5] Generating agent...
+[2/5] Evaluating...
+[2/5] Score: 0.62 - refining...
+[3/5] Refining agent (attempt 3)...
+[3/5] Evaluating...
+[3/5] Score: 0.71 - refining...
+[4/5] Refining agent (attempt 4)...
+[4/5] Evaluating...
+[4/5] Score: 0.88 - agent passed quality gate</code></pre>
+
+          <h2>3. Inspect the Result</h2>
+          <pre><code># List all agents
+agent-forge list
+
+# Inspect version history
+agent-forge history pr_reviewer
+
+# Inspect specific version
+agent-forge inspect pr_reviewer --v 3</code></pre>
+
+          <h2>4. Use the Agent</h2>
+          <p>If exported to Claude Skills, the agent is available at <code>~/.claude/skills/pr_reviewer/</code>.</p>
+          <p>If exported as standalone:</p>
+          <pre><code>cd agents/pr_reviewer
+bun run agent.ts sample input here</code></pre>
+
+          <h2>Programmatic Usage</h2>
+          <pre><code>import runLoop from "agent-forge/runloop";
+
+const result = await runLoop({
+  description: "review PRs for logic errors",
+  name: "pr_reviewer",
+  tools: ["gh_api", "read_file"],
+  threshold: 0.85,
+  maxIterations: 5,
+  outputMode: "claude-skills",
+});
+
+if (result.passed) {
+  console.log("Agent created at: " + result.path);
+} else {
+  console.log("Best score: " + result.bestScore);
+}</code></pre>
+
+          <h2>What Happens Inside the Loop</h2>
+          <ol>
+            <li><strong>Generate</strong> — LLM produces a TypeScript agent file from NL description</li>
+            <li><strong>Test Generation</strong> — LLM creates k=5 diverse test cases traced to intent clauses</li>
+            <li><strong>Evaluate</strong> — Agent runs against each test; LLM judge scores semantic quality</li>
+            <li><strong>Quality Gate</strong> — Composite score (60% tests + 40% judge) checked against threshold</li>
+            <li><strong>Refine</strong> — If gate fails, LLM refiner rewrites targeted parts of the agent</li>
+            <li><strong>Repeat</strong> — Loop until pass or max iterations reached</li>
+          </ol>
+
+          <div class="tip">
+            <strong>Tip:</strong> Start with a narrow, specific task. "Review PRs for logic errors" works better than "be a code expert."
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

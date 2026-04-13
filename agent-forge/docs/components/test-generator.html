@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>TestGenerator — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>TestGenerator</h1>
+
+          <p>Auto-generates diverse test cases from an agent spec, with intent tracing and diversity enforcement.</p>
+
+          <h2>Interface</h2>
+          <pre><code>import { TestGenerator } from "agent-forge/test_generator";
+import { createOllamaBackend } from "agent-forge/llm_backend/ollama";
+
+const llm = createOllamaBackend();
+const tg = new TestGenerator(llm);
+
+const testCases = await tg.generate({
+  description: "review PRs for logic errors and style violations",
+  inputSchema: { pr_url: "string", repo: "string" },
+  outputSchema: { issues: "array", score: "number", summary: "string" },
+  tools: ["gh_api", "read_file"],
+  k: 5,
+});
+
+const coverage = tg.checkCoverage(testCases, description);
+// coverage.gaps = ["style violations"] if not covered</code></pre>
+
+          <h2>TestCase Structure</h2>
+          <pre><code>interface TestCase {
+  id: string;
+  input: unknown;
+  expectedSchema: { keys: string[] };
+  tracedTo: string[];       // description clauses this test covers
+  diversityScore: number;   // 0.0-1.0, how unique this test is
+}</code></pre>
+
+          <h2>Diversity Enforcement</h2>
+          <p>After parsing the LLM-generated test cases, pairwise Jaccard similarity is computed:</p>
+          <pre><code>function jaccardSimilarity(a: unknown, b: unknown): number {
+  const aStr = JSON.stringify(a);
+  const bStr = JSON.stringify(b);
+  if (aStr equals bStr) return 1;
+  const aSet = new Set(aStr.split(""));
+  const bSet = new Set(bStr.split(""));
+  const intersection = [...aSet].filter(c equals bSet.has(c)).length;
+  const union = new Set([...aSet, ...bSet]).size;
+  return intersection / union;  // greater than 0.7 = too similar, rejected
+}</code></pre>
+          <p>If fewer than <code>k</code> diverse tests are generated, fallback synthetic tests are appended.</p>
+
+          <h2>Intent Tracing</h2>
+          <p>The NL description is parsed for key aspects using regex patterns:</p>
+          <pre><code>const aspectPatterns = [
+  { pattern: /logic\s*errors?/gi, aspect: "logic errors" },
+  { pattern: /style\s*violations?/gi, aspect: "style violations" },
+  { pattern: /test\s*coverage/gi, aspect: "test coverage" },
+  { pattern: /security/gi, aspect: "security" },
+  { pattern: /performance/gi, aspect: "performance" },
+];</code></pre>
+          <p>Each test's <code>tracedTo</code> field maps it to the aspects it exercises. <code>checkCoverage()</code> then identifies any aspect with zero test coverage.</p>
+
+          <h2>CoverageReport</h2>
+          <pre><code>interface CoverageReport {
+  aspects: string[];         // all aspects found in description
+  coveredAspects: string[];  // aspects with tests
+  gaps: string[];             // aspects with 0 tests - BLOCKS export
+}</code></pre>
+
+          <h2>JSON Parsing Robustness</h2>
+          <p>If the LLM output fails to parse as JSON, fallback test cases are generated:</p>
+          <pre><code>// Fallback generates k placeholder tests
+// with structurally valid but generic inputs
+// matching the inputSchema keys</code></pre>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

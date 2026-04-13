@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>QualityGate — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>QualityGate</h1>
+
+          <p>Decides whether an agent passes or fails based on its ScoreReport, configurable thresholds, and coverage checks.</p>
+
+          <h2>Interface</h2>
+          <pre><code>import QualityGate from "agent-forge/quality_gate";
+
+const gate = new QualityGate(0.85);  // default threshold
+
+const result = gate.check(scoreReport);
+// result.passed: boolean
+// result.warnings: string array
+// result.blocked: boolean (coverage gaps)
+// result.compositeScore: number</code></pre>
+
+          <h2>QualityGateResult</h2>
+          <pre><code>interface QualityGateResult {
+  passed: boolean;       // composite greater-or-equal threshold AND not blocked
+  warnings: string[];    // non-blocking alerts
+  blocked: boolean;       // true if coverage gaps exist
+  compositeScore: number;
+}</code></pre>
+
+          <h2>Pass Conditions</h2>
+          <p>An agent passes if and only if:</p>
+          <ol>
+            <li>composite score greater-or-equal threshold</li>
+            <li>coverage gaps length equals zero</li>
+          </ol>
+          <p>If coverage gaps exist, blocked is true regardless of score.</p>
+
+          <h2>Warning Conditions</h2>
+          <p>Warnings are attached (but don't block) for:</p>
+          <ul>
+            <li>testPassRate less than 0.5 — "Low test pass rate"</li>
+            <li>judgeScore less than 0.5 — "Low LLM judge score"</li>
+            <li>generalizationWarning present — shadow eval failure</li>
+            <li>coverageGaps.length greater than 0 — listed as warning AND blocks</li>
+          </ul>
+
+          <h2>Default Threshold</h2>
+          <pre><code>composite = 0.6 * testPassRate + 0.4 * judgeScore
+
+// With default 0.85 threshold:
+// - 100% test pass + 100% judge = 1.0 = PASS
+// - 100% test pass + 50% judge = 0.8 = FAIL
+// - 50% test pass + 100% judge = 0.7 = FAIL
+// - 85% test pass + 85% judge = 0.85 = PASS</code></pre>
+
+          <h2>Customization</h2>
+          <pre><code>// Different threshold per task
+const strictGate = new QualityGate(0.95);
+const lenientGate = new QualityGate(0.70);
+
+// Change threshold dynamically
+gate.setThreshold(0.90);</code></pre>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>Runtime — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>Runtime</h1>
+
+          <p>Handles agent execution in isolated subprocesses. Two implementations: <code>Executor</code> for single agents, <code>NestedExecutor</code> for multi-agent call graphs.</p>
+
+          <h2>Executor</h2>
+          <p>Executes a single agent against an input via <code>bun:eval</code>.</p>
+
+          <pre><code>import { Executor } from "agent-forge/runtime/executor";
+
+const executor = new Executor();
+
+const result = await executor.execute(agentCode, {
+  pr_url: "https://github.com/org/repo/pull/123",
+  repo: "org/repo",
+});
+
+// result.output: unknown
+// result.error: string or undefined
+// result.executionTimeMs: number
+// result.stdout: string
+// result.stderr: string</code></pre>
+
+          <h3>Execution Flow</h3>
+          <pre><code>1. Create temp files:
+   /tmp/agent-forge-runtime/agent_runId.ts
+   /tmp/agent-forge-runtime/runtime_runId.ts
+   /tmp/agent-forge-runtime/input_runId.json
+
+2. Write agent code + runtime shim + input
+
+3. Spawn: bun run agent_runId.ts
+
+4. Capture stdout/stderr
+
+5. Parse JSON output
+
+6. Clean up temp files</code></pre>
+
+          <h3>Runtime Shim</h3>
+          <p>Every agent execution injects a runtime package providing tool implementations:</p>
+          <pre><code>export const tools = {
+  read_file: async ({ path }) returns object,
+  run_command: async ({ cmd, cwd }) returns object,
+  gh_api: async ({ endpoint, method }) returns object,
+  grep: async ({ pattern, path }) returns array,
+  write_file: async ({ path, content }) returns void,
+  search_web: async ({ query }) returns string,
+};</code></pre>
+
+          <h2>NestedExecutor</h2>
+          <p>Extends Executor with multi-agent support. Agents can call sub-agents via <code>call_agent(name, input)</code>.</p>
+
+          <pre><code>import { NestedExecutor } from "agent-forge/runtime/nested_executor";
+
+const nested = new NestedExecutor();
+
+const result = await nested.executeTopLevel("orchestrator_agent", {
+  task: "analyze this PR",
+});
+
+// result.output: unknown
+// result.callGraph: string[]  // agents in the call chain
+// result.depthLimitReached: boolean or undefined
+// result.cycleDetected: boolean or undefined</code></pre>
+
+          <h3>Depth Limit</h3>
+          <pre><code>// Default: MAX_DEPTH = 3
+// Configurable via AGENT_MAX_DEPTH env var
+
+Depth 0: User calls agent A
+Depth 1: A calls agent B
+Depth 2: B calls agent C
+Depth 3: C calls agent D - REJECTED (depth exceeded)</code></pre>
+
+          <h3>Cycle Detection</h3>
+          <p>The call stack is maintained per execution. If an agent at depth N calls an agent that is already in the stack at depth N, it's rejected as a cycle:</p>
+          <pre><code>// A calls B (depth 1)
+// B calls C (depth 2)
+// C calls A (depth 3) - REJECTED: A already in stack at depth 0</code></pre>
+
+          <h2>Tool Registration</h2>
+          <p>To enable <code>call_agent</code> within an agent's runtime:</p>
+          <pre><code>const callAgentTool = NestedExecutor.registerCallAgentTool(nested);
+// callAgentTool({ agent: "sub_agent_name", params: { ... } })</code></pre>
+          <p>This would be wired into the runtime shim when executing nested agents, allowing agents to invoke each other as tools.</p>
+
+          <h2>Timeout</h2>
+          <p>Default execution timeout is 30 seconds per agent. Set via constructor or <code>AGENT_TIMEOUT_MS</code> env var.</p>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

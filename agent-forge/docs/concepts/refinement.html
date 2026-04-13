@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>Refinement Loop — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>Refinement Loop</h1>
+
+          <p>When an agent fails the QualityGate, the Refiner rewrites it using the failure report as a targeted fix guide.</p>
+
+          <h2>Loop Flow</h2>
+          <pre><code>describe("review PRs for logic errors")
+    |
+ Generator - agent_v1.ts
+    |
+ Evaluator - ScoreReport
+    |  composite: 0.62, failures: [...]
+    |
+ QualityGate: FAIL (0.62 less than 0.85)
+    |
+ Refiner - agent_v2.ts (targeted fixes)
+    |
+ Evaluator - ScoreReport
+    |  composite: 0.88
+    |
+ QualityGate: PASS - OutputAdapter - export</code></pre>
+
+          <h2>Refiner Strategy</h2>
+          <p>The Refiner is not told to "rewrite everything." It receives:</p>
+          <ul>
+            <li>Current agent code</li>
+            <li>Full failure report (test results, judge scores, specific failures)</li>
+            <li>System prompt instructing targeted, conservative changes</li>
+          </ul>
+
+          <h3>Common Fix Patterns</h3>
+          <table>
+            <thead>
+              <tr><th>Failure</th><th>Fix</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Missing output fields</td><td>Check OUTPUT_SCHEMA, ensure all keys returned</td></tr>
+              <tr><td>Schema mismatch</td><td>Align returned keys with expected schema exactly</td></tr>
+              <tr><td>Error handling</td><td>Wrap operations in try/catch, return error info gracefully</td></tr>
+              <tr><td>Tool misuse</td><td>Verify tool import and correct call signature</td></tr>
+              <tr><td>Edge case crash</td><td>Add null/undefined checks</td></tr>
+            </tbody>
+          </table>
+
+          <h2>Iteration Tracking</h2>
+          <p>Every iteration is snapshot in the Registry:</p>
+          <ul>
+            <li>Agent code at that version</li>
+            <li>Eval run results (score, failures, warnings)</li>
+            <li>Best score tracked across all versions</li>
+          </ul>
+          <p>If the loop exits without passing, the best-scoring version is retained.</p>
+
+          <h2>Max Iterations</h2>
+          <p>Default: 5. Configurable via <code>--max-iterations</code>. After max:</p>
+          <ul>
+            <li>Loop exits with <code>FAILED</code> state</li>
+            <li>Best version is saved in registry</li>
+            <li>Best code is available for inspection</li>
+            <li>Export is NOT triggered (requires passing gate)</li>
+          </ul>
+
+          <h2>Output on Export</h2>
+          <p>When the agent passes, it's written to the target via an OutputAdapter:</p>
+          <ul>
+            <li><strong>Claude Skills</strong>: <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code> + <code>agent.ts</code></li>
+            <li><strong>Standalone</strong>: <code>./agents/&lt;name&gt;/agent.ts</code> + <code>README.md</code></li>
+          </ul>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Meta-framework for creating and auto-refining LLM-driven agents" />
+    <title>Registry — Agent Forge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/agent-forge/favicon.svg" />
+    <link rel="stylesheet" href="/agent-forge/css/styles.css" />
+  </head>
+  <body>
+    <div class="mobile-header">
+      <a href="/agent-forge/" class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Agent Forge</span>
+      </a>
+      <button class="mobile-menu-btn" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="overlay"></div>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-container"></div>
+      </aside>
+      <main class="main-content">
+        <div class="content-wrapper">
+          <h1>Registry</h1>
+
+          <p>SQLite-backed persistence layer for agents, versions, evaluation history, and test cases.</p>
+
+          <h2>Database Location</h2>
+          <pre><code># Default
+.agent-forge/registry.db
+
+# Custom
+AGENT_FORGE_DATA=/path/to/data agent-forge create "..."</code></pre>
+
+          <h2>Schema</h2>
+          <pre><code>agents
+  id          TEXT PRIMARY KEY
+  name        TEXT UNIQUE NOT NULL
+  description TEXT
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  latest_version INTEGER DEFAULT 0
+
+agent_versions
+  id          TEXT PRIMARY KEY
+  agent_id    TEXT REFERENCES agents(id) ON DELETE CASCADE
+  version     INTEGER NOT NULL
+  code        TEXT NOT NULL
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+  UNIQUE(agent_id, version)
+
+eval_runs
+  id                  TEXT PRIMARY KEY
+  agent_version_id    TEXT REFERENCES agent_versions(id) ON DELETE CASCADE
+  iteration           INTEGER NOT NULL
+  test_pass_rate      REAL
+  judge_score         REAL
+  composite_score     REAL
+  passed              INTEGER
+  failure_report      TEXT  -- JSON
+  created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+
+test_cases
+  id              TEXT PRIMARY KEY
+  agent_id        TEXT REFERENCES agents(id) ON DELETE CASCADE
+  input_json      TEXT NOT NULL
+  expected_schema TEXT NOT NULL
+  traced_to       TEXT  -- JSON array
+  diversity_score REAL
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP</code></pre>
+
+          <h2>Key Functions</h2>
+          <pre><code>// Agents
+createAgent(name: string, description: string): AgentRow
+getAgentByName(name: string): AgentRow | null
+getAllAgents(): AgentRow[]
+
+// Versions
+createAgentVersion(agentId: string, version: number, code: string): VersionRow
+getAgentVersion(agentId: string, version: number): VersionRow | null
+getLatestAgentVersion(agentId: string): VersionRow | null
+getAllAgentVersions(agentId: string): VersionRow[]
+
+// Evals
+createEvalRun(params: EvalParams): EvalRunRow
+getEvalRunsForVersion(agentVersionId: string): EvalRunRow[]
+getBestEvalForAgent(agentId: string): EvalRunRow | null
+
+// Test Cases
+createTestCase(params: TestCaseParams): TestCaseRow
+getTestCasesForAgent(agentId: string): TestCaseRow[]
+deleteTestCasesForAgent(agentId: string): void</code></pre>
+
+          <h2>Usage in LoopController</h2>
+          <pre><code>// On each iteration:
+const version = createAgentVersion(agentId, iter, code);
+createEvalRun({
+  agentVersionId: version.id,
+  iteration: iter,
+  testPassRate: report.testPassRate,
+  judgeScore: report.judgeScore,
+  compositeScore: report.composite,
+  passed: gateResult.passed,
+  failureReport: { failures, warnings },
+});
+
+// Best score tracked across iterations
+if (report.composite {">"} bestScore) {
+  bestScore = report.composite;
+  bestCode = code;
+}</code></pre>
+
+          <h2>aiosqlite Notes</h2>
+          <p>The registry uses <code>bun:sqlite</code> (Bun's native SQLite bindings). WAL mode is enabled for concurrent read access. Foreign keys are enforced via CASCADE deletes.</p>
+        </div>
+      </main>
+    </div>
+    <script src="/agent-forge/js/sidebar.js"></script>
+  </body>
+</html>
